@@ -1,0 +1,50 @@
+     table_name      | column_count |                                                                                                                                                                                                                                                                  columns                                                                                                                                                                                                                                                                   
+---------------------+--------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Announcements       |           10 | id, priority, title, text, mediaPath, mediaName, companyId, status, createdAt, updatedAt
+ Baileys             |            6 | id, whatsappId, contacts, chats, createdAt, updatedAt
+ BaileysChats        |            6 | id, whatsappId, jid, conversationtimestamp, createdAt, updatedAt
+ BaileysMessages     |            7 | id, whatsappId, jid, messageId, content, createdAt, updatedAt
+ CampaignSettings    |            7 | id, key, value, campaignId, companyId, createdAt, updatedAt
+ CampaignShipping    |           15 | id, jobId, number, message, confirmationMessage, confirmation, contactId, campaignId, confirmationRequestedAt, confirmedAt, deliveredAt, createdAt, updatedAt, companyId, ticketId
+ Campaigns           |           27 | id, name, message1, message2, message3, message4, message5, confirmationmessage1, confirmationmessage2, confirmationmessage3, confirmationmessage4, confirmationmessage5, status, confirmation, mediaPath, mediaName, scheduledAt, completedAt, companyId, contactListId, whatsappId, fileListId, tagId, delay, createdAt, updatedAt, openTicket
+ ChatMessages        |            8 | id, chatId, senderId, message, createdAt, updatedAt, mediaPath, mediaName
+ ChatUsers           |            6 | id, chatId, userId, createdAt, updatedAt, unreads
+ Chats               |            8 | id, uuid, title, ownerId, lastMessage, companyId, createdAt, updatedAt
+ Companies           |           15 | id, name, status, createdAt, updatedAt, planId, dueDate, recurrence, document, email, phone, address, language, hostname, schedules
+ ContactCustomFields |            6 | id, name, value, contactId, createdAt, updatedAt
+ ContactListItems    |            9 | id, name, number, email, contactListId, isWhatsappValid, createdAt, updatedAt, companyId
+ ContactLists        |            5 | id, name, companyId, createdAt, updatedAt
+ Contacts            |           23 | id, name, number, profilePicUrl, createdAt, updatedAt, email, companyId, isGroup, acceptAudioMessage, active, channel, lastMessageAt, pushname, whatsappId, disableBot, presence, presenceUpdatedAt, remoteJid, urlPicture, pictureUpdatedAt, lgpdacceptedat, pictureUrl
+ Files               |            6 | id, name, message, companyId, createdAt, updatedAt
+ FilesOptions        |            7 | id, fileId, name, path, mediaType, createdAt, updatedAt
+ FlowAudios          |            6 | id, name, url, companyId, createdAt, updatedAt
+ FlowBuilders        |            8 | id, name, flow, companyId, createdAt, updatedAt, status, variables
+ FlowCampaigns       |            9 | id, name, phrase, status, whatsappId, flowId, companyId, createdAt, updatedAt
+ FlowDefaults        |            6 | id, companyId, flowIdWelcome, flowIdNotPhrase, createdAt, updatedAt
+ FlowImgs            |            6 | id, name, url, companyId, createdAt, updatedAt
+ Helps               |            7 | id, title, description, video, link, createdAt, updatedAt
+ Invoices            |           11 | id, detail, status, value, createdAt, updatedAt, dueDate, companyId, txId, payGw, payGwData
+ Messages            |           23 | id, ack, read, fromMe, body, mediaUrl, mediaType, isDeleted, createdAt, updatedAt, messageId, ticketId, contactId, companyId, remoteJid, dataJson, stickerUrl, quotedMsgId, participant, edited, editedAt, isPrivate, scheduleDate
+ Plans               |           20 | id, name, users, connections, queues, createdAt, updatedAt, value, useWhatsapp, useFacebook, useInstagram, useCampaigns, useSchedules, useInternalChat, useExternalApi, useKanban, useOpenAi, useIntegrations, trial, trialDays
+ Prompts             |           18 | id, name, apiKey, prompt, maxTokens, temperature, promptTokens, completionTokens, totalTokens, createdAt, updatedAt, companyId, queueId, model, maxMessages, voice, voiceKey, voiceRegion
+ QueueIntegrations   |           17 | id, type, name, projectName, jsonContent, urlN8N, companyId, language, createdAt, updatedAt, typebotSlug, typebotExpires, typebotKeywordFinish, typebotUnknownMessage, typebotDelayMessage, typebotKeywordRestart, typebotRestartMessage
+ QueueOptions        |           10 | id, queueId, title, message, option, createdAt, updatedAt, parentId, mediaPath, mediaName
+ Queues              |           15 | id, name, color, greetingMessage, createdAt, updatedAt, companyId, orderQueue, integrationId, promptId, schedules, closeTicket, startWork, endWork, absenceMessage
+ QuickMessages       |           11 | id, shortcode, message, geral, mediaPath, mediaName, companyId, createdAt, updatedAt, userId, voiceRecordingPath
+ Schedules           |           14 | id, body, sendAt, sentAt, contactId, ticketId, userId, companyId, createdAt, updatedAt, status, mediaPath, mediaName, idExterno
+ SequelizeMeta       |            1 | name
+ Settings            |            6 | key, value, createdAt, updatedAt, companyId, id
+ Subscriptions       |           11 | id, isActive, createdAt, updatedAt, userPriceCents, whatsPriceCents, lastInvoiceUrl, lastPlanChange, providerSubscriptionId, companyId, invoiceId
+ Tags                |            7 | id, name, color, kanban, createdAt, updatedAt, companyId
+ TicketNotes         |            6 | id, note, userId, ticketId, createdAt, updatedAt
+ TicketTags          |            4 | ticketId, tagId, createdAt, updatedAt
+ TicketTraking       |           12 | id, ticketId, companyId, whatsappId, userId, createdAt, updatedAt, rated, startedAt, queuedAt, finishedAt, ratingAt
+ Tickets             |           34 | id, status, lastMessage, contactId, userId, createdAt, updatedAt, whatsappId, isGroup, unreadMessages, queueId, companyId, uuid, chatbot, queueOptionId, amountUsedBotQueues, fromMe, useIntegration, integrationId, typebotSessionId, typebotStatus, promptId, sendInactiveMessage, maxUseBotQueues, lastMessageAt, closed, imported, lgpdacceptedat, amountUseBotQueuesNPS, lgpdsendmessageat, flowwebhook, flowStopped, datawebhook, statuschatend
+ UserQueues          |            4 | userId, queueId, createdAt, updatedAt
+ UserRatings         |            7 | id, ticketId, companyId, userId, rate, createdAt, updatedAt
+ Users               |           16 | id, name, email, passwordHash, createdAt, updatedAt, profile, tokenVersion, companyId, super, online, startWork, endWork, whatsappId, locale, allTicket
+ Webhooks            |            8 | id, name, url, events, active, companyId, createdAt, updatedAt
+ WhatsappQueues      |            4 | whatsappId, queueId, createdAt, updatedAt
+ Whatsapps           |           35 | id, name, session, qrcode, status, battery, plugged, createdAt, updatedAt, isDefault, retries, companyId, greetingMessage, farewellMessage, token, provider, isMultidevice, closedTicketsPostImported, importOldMessages, ratingMessage, sendIdQueue, timeUseBotQueues, expiresTicket, timeCreateNewTicket, complationMessage, outOfHoursMessage, promptId, collectiveVacationMessage, collectiveVacationStart, collectiveVacationEnd, maxUseBotQueues, timeUseBotQueuesNPS, expiresInactiveMessage, inactiveMessage, statusimportmessages
+(46 rows)
+

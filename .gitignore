@@ -1,0 +1,45 @@
+# Archivos del sistema
+.DS_Store
+Thumbs.db
+
+# Node modules - se reinstalan con npm install
+node_modules/
+*/node_modules/
+
+# Logs temporales
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Cache de compilación
+frontend/node_modules/.cache/
+backend/node_modules/.cache/
+
+# IMPORTANTE: INCLUIMOS A PROPÓSITO:
+# ✅ Archivos .env con configuración de Supabase
+.env
+.env.local
+.env.production
+!.env.production.local
+# ✅ Archivos de build (dist/, build/)
+dist/
+build/
+*.tar.gz
+*.zip
+# ✅ Archivos de migración SQL
+# ✅ Backups y dumps de base de datos
+# ✅ Todos los archivos de configuración
+#
+# Para que la app funcione al 100% después de clonar:
+# 1. git clone <repo>
+# 2. cd backend && npm install
+# 3. cd ../frontend && npm install
+# 4. La app está lista para usar con Supabase configurado!# Scripts temporales de setup
+setup-*.sh
+update-*.sh
+complete-*.sh
+backend-proxy/
+frontend/backend-proxy/
+frontend/nginx.conf
+frontend/Dockerfile

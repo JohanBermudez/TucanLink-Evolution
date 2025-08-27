@@ -1,0 +1,25 @@
+/* Botão modernizado com gradiente */
+.MuiButtonBase-root.buttonHover {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 12px !important;
+    padding: 10px 24px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.5px;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    transition: all 0.3s ease !important;
+    border: none !important;
+    text-transform: none !important;
+}
+
+/* Efeito hover */
+.MuiButtonBase-root.buttonHover:hover {
+    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    transform: translateY(-2px);
+}
+
+/* Efeito active/pressed */
+.MuiButtonBase-root.buttonHover:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 10px rgba(102, 126, 234, 0.3);
+}

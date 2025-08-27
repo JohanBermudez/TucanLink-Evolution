@@ -1,0 +1,10 @@
+{
+  "extends": ["react-app"],
+  "rules": {
+    "no-unused-vars": "off",
+    "react-hooks/exhaustive-deps": "off",
+    "no-dupe-keys": "warn",
+    "no-lone-blocks": "off",
+    "react/jsx-no-comment-textnodes": "off"
+  }
+}

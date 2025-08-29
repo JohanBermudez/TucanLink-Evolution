@@ -1,0 +1,1965 @@
+openapi: 3.0.3
+info:
+  title: TucanLink API Bridge
+  version: 1.0.0
+  description: |
+    ## 🚀 API Bridge para TucanLink CRM
+    
+    Sistema completo de API RESTful que proporciona acceso a todas las funcionalidades del CRM TucanLink.
+    
+    ### 🔐 Autenticación
+    
+    La API soporta múltiples métodos de autenticación:
+    
+    1. **🔐 Formulario de Autenticación (Recomendado)**
+       - Click en el botón **"Authorize"** arriba ↗️
+       - Username: `admin@atendechat.com`
+       - Password: `123456`
+       - Se autentica automáticamente en Swagger UI
+    
+    2. **JWT Token** - Para aplicaciones frontend y usuarios  
+       - Obtener token desde `/auth/core/login`
+       - Incluir en header: `Authorization: Bearer {token}`
+    
+    3. **API Key** - Para integraciones server-to-server
+       - Solicitar API Key desde el panel admin
+       - Incluir en header: `X-API-Key: {key}`
+    
+    4. **Dev Mode** - Solo para desarrollo
+       - Agregar `?companyId=1` a cualquier endpoint
+       - NO usar en producción
+    
+    ### 🚀 Control de Sesiones WhatsApp
+    
+    **¡IMPORTANTE!** Para generar QR codes y controlar sesiones WhatsApp:
+    
+    1. **Autentica aquí** (API Bridge) con el botón **"Authorize"** ↗️
+    2. **Usa los endpoints del Core Service** (puerto 8080):
+       ```bash
+       # Iniciar sesión WhatsApp
+       curl -X POST http://localhost:8080/whatsapp/{id}/start \
+         -H "Authorization: Bearer {tu-token}"
+       
+       # Obtener QR code
+       curl -X GET http://localhost:8080/whatsapp/{id}/qr \
+         -H "Authorization: Bearer {tu-token}"
+       ```
+    
+    **📚 Los endpoints del Core Service están documentados abajo en la sección "WhatsApp Core"** para tu conveniencia, pero recuerda que las llamadas reales van al **puerto 8080**.
+    
+    ### 📊 Estado de las APIs
+    
+    | API | Estado | Endpoints | Descripción |
+    |-----|--------|-----------|-------------|
+    | ✅ Tickets | Operativa | 6 | Gestión completa de tickets |
+    | ✅ Messages | Operativa | 5 | Envío/recepción WhatsApp |
+    | ✅ Contacts | Operativa | 8 | Gestión de contactos |
+    | ✅ Queues | Operativa | 6 | Gestión de colas |
+    | ✅ WhatsApp | Operativa | 4 | CRUD sesiones |
+    | ✅ WhatsApp Core | Operativa | 4 | Control de sesiones (puerto 8080) |
+    | ✅ Users | Operativa | 7 | Gestión de usuarios |
+    | ✅ Tags | Operativa | 7 | Sistema de etiquetas |
+    | ✅ Companies | Operativa | 3 | Multi-tenancy |
+    | ✅ Settings | Operativa | 5 | Configuraciones |
+    | ✅ Schedules | Operativa | 6 | Mensajes programados |
+    
+    ### 🎯 Base URLs
+    
+    - **Development**: `http://localhost:8090/api/bridge/v1`
+    - **Production**: `https://api.tucanlink.com/v1`
+    
+    ### 📝 Ejemplos Rápidos
+    
+    ```bash
+    # Health Check
+    curl http://localhost:8090/api/bridge/v1/health
+    
+    # Listar tickets (dev mode)
+    curl "http://localhost:8090/api/bridge/v1/tickets?companyId=1"
+    
+    # Enviar mensaje
+    curl -X POST http://localhost:8090/api/bridge/v1/messages \
+      -H "X-API-Key: your-api-key" \
+      -H "Content-Type: application/json" \
+      -d '{"body": "Hello!", "ticketId": 1}'
+    ```
+
+  contact:
+    name: TucanLink Support
+    email: support@tucanlink.com
+    url: https://tucanlink.com
+
+  license:
+    name: Proprietary
+    url: https://tucanlink.com/license
+
+servers:
+  - url: http://localhost:8090/api/bridge/v1
+    description: Development server (running)
+  - url: https://api.tucanlink.com/v1
+    description: Production server
+
+security:
+  - oauth2: [admin, user]
+  - bearerAuth: []
+  - apiKey: []
+  - devMode: []
+
+tags:
+  - name: Auth
+    description: Authentication and JWT token management
+  - name: Health
+    description: Health check and status endpoints
+  - name: Tickets
+    description: Support ticket management
+  - name: Messages
+    description: WhatsApp messaging operations
+  - name: Contacts
+    description: Contact management
+  - name: Queues
+    description: Queue and routing management
+  - name: WhatsApp
+    description: WhatsApp session management (CRUD operations)
+  - name: WhatsApp Core
+    description: WhatsApp session control (Core Service - Port 8080)
+  - name: Users
+    description: User management and permissions
+  - name: Tags
+    description: Tag and categorization system
+  - name: Companies
+    description: Company and tenant management
+  - name: Settings
+    description: System configuration
+  - name: Schedules
+    description: Message scheduling
+
+paths:
+  # ============ HEALTH ENDPOINTS ============
+  /health:
+    get:
+      tags: [Health]
+      summary: Basic Health Check
+      description: Check if the API is running
+      security: []
+      responses:
+        '200':
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: healthy
+                  timestamp:
+                    type: string
+                    format: date-time
+                  uptime:
+                    type: number
+                    example: 3600
+                  environment:
+                    type: string
+                    example: development
+                  version:
+                    type: string
+                    example: 1.0.0
+
+  /health/ready:
+    get:
+      tags: [Health]
+      summary: Readiness Check
+      description: Check if API is ready to accept requests
+      security: []
+      responses:
+        '200':
+          description: API is ready
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ready
+                  checks:
+                    type: object
+                    properties:
+                      database:
+                        type: boolean
+                      redis:
+                        type: boolean
+                      whatsapp:
+                        type: boolean
+
+  /health/live:
+    get:
+      tags: [Health]
+      summary: Liveness Check
+      description: Check if API process is alive
+      security: []
+      responses:
+        '200':
+          description: API is alive
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: live
+                  timestamp:
+                    type: string
+
+  # ============ AUTH ENDPOINTS ============
+  /auth/core/login:
+    post:
+      tags: [Auth]
+      summary: "🔐 Login to Core Service (Get JWT)"
+      description: |
+        **Authenticate and get JWT token for Core Service operations**
+        
+        Use this endpoint to obtain JWT tokens required for Core Service endpoints:
+        - `POST /whatsapp/:id/start` (Start WhatsApp session)
+        - `POST /whatsapp/:id/restart` (Restart session)  
+        - `POST /whatsapp/:id/disconnect` (Disconnect session)
+        - `GET /whatsapp/:id/qr` (Get active QR code)
+        
+        **⚠️ Important Notes:**
+        - This proxies to the Core Service at `http://localhost:8080/auth/login`
+        - Returns JWT tokens valid for 24 hours
+        - Required for all WhatsApp session control operations
+        - **Check existing users first**: Use `GET /api/bridge/v1/users?companyId=1`
+        - **Reset password if needed**: Contact system administrator
+        - **Default credentials**: admin@atendechat.com / 123456
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  description: User email address
+                  example: "admin@atendechat.com"
+                password:
+                  type: string
+                  description: User password
+                  example: "admin123"
+            examples:
+              admin:
+                summary: Admin Login
+                value:
+                  email: "admin@atendechat.com"
+                  password: "123456"
+              user:
+                summary: User Login  
+                value:
+                  email: "user@company.com"
+                  password: "userpass"
+      responses:
+        '200':
+          description: Login successful - JWT token returned
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  token:
+                    type: string
+                    description: JWT token for Core Service authentication
+                    example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MiwiZW1haWwiOiJhZG1pbkBhZG1pbi5jb20iLCJuYW1lIjoiQWRtaW4iLCJwcm9maWxlIjoiYWRtaW4iLCJjb21wYW55SWQiOjEsImlhdCI6MTcyNDg1ODM3NiwiZXhwIjoxNzI0OTQ0Nzc2fQ.token_signature_here"
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        example: 2
+                      email:
+                        type: string
+                        example: "admin@atendechat.com"
+                      name:
+                        type: string
+                        example: "Admin"
+                      profile:
+                        type: string
+                        example: "admin"
+                      companyId:
+                        type: integer
+                        example: 1
+                  message:
+                    type: string
+                    example: "Login successful. Use this token for Core Service endpoints."
+                  coreServiceEndpoints:
+                    type: object
+                    description: "Available Core Service endpoints with this JWT"
+                    properties:
+                      whatsappStart:
+                        type: string
+                        example: "POST /whatsapp/{id}/start"
+                      whatsappRestart:
+                        type: string
+                        example: "POST /whatsapp/{id}/restart"
+                      whatsappDisconnect:
+                        type: string
+                        example: "POST /whatsapp/{id}/disconnect"
+                      whatsappQr:
+                        type: string
+                        example: "GET /whatsapp/{id}/qr"
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Unauthorized"
+                  message:
+                    type: string
+                    example: "Invalid email or password"
+        '503':
+          description: Core service unavailable
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Service Unavailable"
+                  message:
+                    type: string
+                    example: "Core service is not available. Please ensure it's running on port 8080."
+                  hint:
+                    type: string
+                    example: "Start Core service with: npm run dev"
+
+  /auth/core/refresh:
+    post:
+      tags: [Auth]
+      summary: "🔄 Refresh JWT Token"
+      description: |
+        **Refresh an expired JWT token**
+        
+        Use this endpoint when your JWT token is about to expire or has expired.
+        Returns a new JWT token with extended validity.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken:
+                  type: string
+                  description: Valid refresh token
+                  example: "refresh_token_here"
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  token:
+                    type: string
+                    description: New JWT token
+                    example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                  expiresIn:
+                    type: integer
+                    description: Token expiry time in seconds
+                    example: 86400
+        '401':
+          description: Invalid or expired refresh token
+
+  /auth/core/oauth2/token:
+    post:
+      tags: [Auth]
+      summary: "🔐 OAuth2 Token Endpoint"
+      description: |
+        **OAuth2 Token Endpoint for Swagger UI Authentication**
+        
+        This endpoint is used by Swagger UI for OAuth2 authentication.
+        Use the "Authorize" button above to authenticate.
+        
+        **Credentials:**
+        - Username: admin@atendechat.com  
+        - Password: 123456
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [grant_type, username, password]
+              properties:
+                grant_type:
+                  type: string
+                  enum: [password]
+                  example: password
+                username:
+                  type: string
+                  format: email
+                  example: "admin@atendechat.com"
+                password:
+                  type: string
+                  example: "123456"
+      responses:
+        '200':
+          description: Token issued successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+                    description: JWT access token
+                    example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                  token_type:
+                    type: string
+                    example: "Bearer"
+                  expires_in:
+                    type: integer
+                    description: Token expiry time in seconds
+                    example: 86400
+                  scope:
+                    type: string
+                    example: "admin user"
+        '400':
+          description: Invalid request or unsupported grant type
+        '401':
+          description: Invalid credentials
+
+
+  # ============ TICKETS ENDPOINTS ============
+  /tickets:
+    get:
+      tags: [Tickets]
+      summary: List tickets
+      description: Get paginated list of tickets with filters
+      parameters:
+        - $ref: '#/components/parameters/pageParam'
+        - $ref: '#/components/parameters/limitParam'
+        - $ref: '#/components/parameters/searchParam'
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [open, pending, closed]
+        - name: queueId
+          in: query
+          schema:
+            type: integer
+        - name: userId
+          in: query
+          schema:
+            type: integer
+        - name: includeContact
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          $ref: '#/components/responses/TicketListResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+    post:
+      tags: [Tickets]
+      summary: Create ticket
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [contactId, status]
+              properties:
+                contactId:
+                  type: integer
+                status:
+                  type: string
+                  enum: [open, pending, closed]
+                queueId:
+                  type: integer
+                userId:
+                  type: integer
+            example:
+              contactId: 1
+              status: open
+              queueId: 1
+      responses:
+        '201':
+          description: Ticket created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /tickets/{id}:
+    parameters:
+      - $ref: '#/components/parameters/idParam'
+    
+    get:
+      tags: [Tickets]
+      summary: Get ticket by ID
+      responses:
+        '200':
+          description: Ticket details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Ticket'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+    put:
+      tags: [Tickets]
+      summary: Update ticket
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                queueId:
+                  type: integer
+                userId:
+                  type: integer
+      responses:
+        '200':
+          $ref: '#/components/responses/SuccessResponse'
+
+    delete:
+      tags: [Tickets]
+      summary: Delete ticket
+      responses:
+        '200':
+          $ref: '#/components/responses/SuccessResponse'
+
+  /tickets/{id}/transfer:
+    post:
+      tags: [Tickets]
+      summary: Transfer ticket to another queue/user
+      parameters:
+        - $ref: '#/components/parameters/idParam'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                queueId:
+                  type: integer
+                userId:
+                  type: integer
+      responses:
+        '200':
+          $ref: '#/components/responses/SuccessResponse'
+
+  # ============ MESSAGES ENDPOINTS ============
+  /messages:
+    get:
+      tags: [Messages]
+      summary: List messages
+      parameters:
+        - $ref: '#/components/parameters/pageParam'
+        - $ref: '#/components/parameters/limitParam'
+        - name: ticketId
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of messages
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      messages:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Message'
+                      pagination:
+                        $ref: '#/components/schemas/Pagination'
+
+    post:
+      tags: [Messages]
+      summary: Send WhatsApp message
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [body, ticketId]
+              properties:
+                body:
+                  type: string
+                ticketId:
+                  type: integer
+                quotedMsgId:
+                  type: string
+                mediaUrl:
+                  type: string
+            example:
+              body: "Hello! How can I help you?"
+              ticketId: 1
+      responses:
+        '201':
+          description: Message sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  # ============ CONTACTS ENDPOINTS ============
+  /contacts:
+    get:
+      tags: [Contacts]
+      summary: List contacts
+      parameters:
+        - $ref: '#/components/parameters/pageParam'
+        - $ref: '#/components/parameters/limitParam'
+        - $ref: '#/components/parameters/searchParam'
+      responses:
+        '200':
+          description: List of contacts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      contacts:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Contact'
+                      pagination:
+                        $ref: '#/components/schemas/Pagination'
+
+    post:
+      tags: [Contacts]
+      summary: Create contact
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, number]
+              properties:
+                name:
+                  type: string
+                number:
+                  type: string
+                  pattern: '^\+?[1-9]\d{1,14}$'
+                email:
+                  type: string
+                  format: email
+            example:
+              name: John Doe
+              number: "+5511999999999"
+              email: john@example.com
+      responses:
+        '201':
+          $ref: '#/components/responses/ContactCreatedResponse'
+
+  /contacts/{id}:
+    parameters:
+      - $ref: '#/components/parameters/idParam'
+    
+    get:
+      tags: [Contacts]
+      summary: Get contact by ID
+      responses:
+        '200':
+          description: Contact details
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+    put:
+      tags: [Contacts]
+      summary: Update contact
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/SuccessResponse'
+
+    delete:
+      tags: [Contacts]
+      summary: Delete contact
+      responses:
+        '200':
+          $ref: '#/components/responses/SuccessResponse'
+
+  # ============ USERS ENDPOINTS ============
+  /users:
+    get:
+      tags: [Users]
+      summary: List users
+      parameters:
+        - $ref: '#/components/parameters/pageParam'
+        - $ref: '#/components/parameters/limitParam'
+        - $ref: '#/components/parameters/searchParam'
+        - name: profile
+          in: query
+          schema:
+            type: string
+            enum: [admin, user, supervisor]
+        - name: online
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: List of users
+
+    post:
+      tags: [Users]
+      summary: Create user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password]
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  minLength: 6
+                profile:
+                  type: string
+                  enum: [admin, user, supervisor]
+                queueIds:
+                  type: array
+                  items:
+                    type: integer
+            example:
+              name: Jane Smith
+              email: jane@example.com
+              password: secure123
+              profile: user
+              queueIds: [1, 2]
+      responses:
+        '201':
+          description: User created
+
+  /users/{id}:
+    parameters:
+      - $ref: '#/components/parameters/idParam'
+    
+    get:
+      tags: [Users]
+      summary: Get user by ID
+      responses:
+        '200':
+          description: User details
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+    put:
+      tags: [Users]
+      summary: Update user
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                profile:
+                  type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/SuccessResponse'
+
+    delete:
+      tags: [Users]
+      summary: Deactivate user
+      responses:
+        '200':
+          $ref: '#/components/responses/SuccessResponse'
+
+  /users/{id}/queues:
+    post:
+      tags: [Users]
+      summary: Assign queues to user
+      parameters:
+        - $ref: '#/components/parameters/idParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [queueIds]
+              properties:
+                queueIds:
+                  type: array
+                  items:
+                    type: integer
+      responses:
+        '200':
+          $ref: '#/components/responses/SuccessResponse'
+
+  /users/{id}/status:
+    patch:
+      tags: [Users]
+      summary: Update user online status
+      parameters:
+        - $ref: '#/components/parameters/idParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [online]
+              properties:
+                online:
+                  type: boolean
+      responses:
+        '200':
+          $ref: '#/components/responses/SuccessResponse'
+
+  # ============ TAGS ENDPOINTS ============
+  /tags:
+    get:
+      tags: [Tags]
+      summary: List tags
+      parameters:
+        - $ref: '#/components/parameters/pageParam'
+        - $ref: '#/components/parameters/limitParam'
+        - $ref: '#/components/parameters/searchParam'
+        - name: includeTicketCount
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: List of tags
+
+    post:
+      tags: [Tags]
+      summary: Create tag
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                color:
+                  type: string
+                  pattern: '^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$'
+                  default: '#0099FF'
+            example:
+              name: Important
+              color: '#FF0000'
+      responses:
+        '201':
+          description: Tag created
+
+  /tags/{id}:
+    parameters:
+      - $ref: '#/components/parameters/idParam'
+    
+    get:
+      tags: [Tags]
+      summary: Get tag by ID
+      responses:
+        '200':
+          description: Tag details
+
+    put:
+      tags: [Tags]
+      summary: Update tag
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                color:
+                  type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/SuccessResponse'
+
+    delete:
+      tags: [Tags]
+      summary: Delete tag
+      responses:
+        '200':
+          $ref: '#/components/responses/SuccessResponse'
+
+  /tags/{id}/tickets:
+    post:
+      tags: [Tags]
+      summary: Add tag to ticket
+      parameters:
+        - $ref: '#/components/parameters/idParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ticketId]
+              properties:
+                ticketId:
+                  type: integer
+      responses:
+        '200':
+          $ref: '#/components/responses/SuccessResponse'
+
+  # ============ QUEUES ENDPOINTS ============
+  /queues:
+    get:
+      tags: [Queues]
+      summary: List queues
+      parameters:
+        - $ref: '#/components/parameters/pageParam'
+        - $ref: '#/components/parameters/limitParam'
+      responses:
+        '200':
+          description: List of queues
+
+    post:
+      tags: [Queues]
+      summary: Create queue
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, color]
+              properties:
+                name:
+                  type: string
+                color:
+                  type: string
+                greeting:
+                  type: string
+      responses:
+        '201':
+          description: Queue created
+
+  # ============ WHATSAPP ENDPOINTS ============
+  /whatsapp:
+    get:
+      tags: [WhatsApp]
+      summary: List WhatsApp sessions
+      parameters:
+        - $ref: '#/components/parameters/pageParam'
+        - $ref: '#/components/parameters/limitParam'
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [CONNECTED, DISCONNECTED, OPENING, QRCODE, TIMEOUT]
+      responses:
+        '200':
+          description: List of WhatsApp sessions
+
+    post:
+      tags: [WhatsApp]
+      summary: Create WhatsApp session
+      description: |
+        Creates a new WhatsApp session/connection in DISCONNECTED state.
+        
+        **Connection Flow:**
+        1. Create session with this endpoint (status: DISCONNECTED)
+        2. **Start session with Core service:** `POST /whatsapp/{id}/start` (port 8080)
+        3. **Get QR code with Core service:** `GET /whatsapp/{id}/qr` (port 8080)
+        4. User scans QR code
+        5. Session becomes CONNECTED
+        
+        **⚠️ Important:** Session control operations (start/restart/disconnect) are handled by the **Core service** (port 8080), not the API Bridge. This endpoint only creates the session record.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                  description: Unique name for the WhatsApp connection
+                  example: "Sales WhatsApp"
+                greetingMessage:
+                  type: string
+                  description: Automatic greeting message for new conversations
+                  example: "Hello! Welcome to our support."
+                farewellMessage:
+                  type: string
+                  description: Message sent when closing a conversation
+                outOfHoursMessage:
+                  type: string
+                  description: Message sent outside business hours
+                isDefault:
+                  type: boolean
+                  description: Set as default WhatsApp connection
+                  default: false
+                provider:
+                  type: string
+                  description: WhatsApp provider to use
+                  default: "stable"
+                  enum: ["stable", "beta"]
+      responses:
+        '201':
+          description: Session created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        example: 1
+                      name:
+                        type: string
+                        example: "Sales WhatsApp"
+                      status:
+                        type: string
+                        enum: [DISCONNECTED, OPENING, QRCODE, CONNECTED, TIMEOUT]
+                        example: "OPENING"
+                      companyId:
+                        type: integer
+                        example: 1
+                  message:
+                    type: string
+                    example: "WhatsApp session created successfully. Use Core service endpoints to start/control the session."
+                  coreEndpoints:
+                    type: object
+                    description: "Core service endpoints for session control"
+                    properties:
+                      start:
+                        type: string
+                        example: "POST /whatsapp/{id}/start"
+                      restart:
+                        type: string  
+                        example: "POST /whatsapp/{id}/restart"
+                      disconnect:
+                        type: string
+                        example: "POST /whatsapp/{id}/disconnect"
+                      getQR:
+                        type: string
+                        example: "GET /whatsapp/{id}/qr (Core Service)"
+        '400':
+          description: Bad request - name is required
+        '409':
+          description: Conflict - session with this name already exists
+
+  /whatsapp/{id}:
+    parameters:
+      - $ref: '#/components/parameters/idParam'
+    
+    get:
+      tags: [WhatsApp]
+      summary: Get WhatsApp session by ID
+      responses:
+        '200':
+          description: Session details
+
+    put:
+      tags: [WhatsApp]
+      summary: Update WhatsApp session
+      responses:
+        '200':
+          $ref: '#/components/responses/SuccessResponse'
+
+    delete:
+      tags: [WhatsApp]
+      summary: Delete WhatsApp session
+      responses:
+        '200':
+          $ref: '#/components/responses/SuccessResponse'
+
+
+  # ============ CORE SERVICE ENDPOINTS (Port 8080) ============
+  
+  /core/whatsapp/{id}/start:
+    post:
+      tags: [WhatsApp Core]
+      summary: "🚀 Start WhatsApp Session"
+      description: |
+        **Start WhatsApp session and generate QR code for scanning**
+        
+        **⚠️ CORE SERVICE ENDPOINT** - Use port 8080, not 8090
+        
+        - **URL**: `http://localhost:8080/whatsapp/{id}/start`
+        - **Auth**: JWT Bearer token (same token from API Bridge authentication)
+        - **Flow**: Changes session status from DISCONNECTED → OPENING → QRCODE
+        
+        After starting, use `/core/whatsapp/{id}/qr` to get the QR code.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          description: WhatsApp session ID
+          example: 14
+      security:
+        - oauth2: [admin, user]
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Session start initiated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "WhatsApp session initialization started"
+                  session:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        example: 14
+                      name:
+                        type: string
+                        example: "Sales WhatsApp"
+                      status:
+                        type: string
+                        example: "OPENING"
+        '401':
+          description: Unauthorized - invalid token
+        '404':
+          description: WhatsApp session not found
+        '409':
+          description: Session already started or connecting
+
+  /core/whatsapp/{id}/qr:
+    get:
+      tags: [WhatsApp Core]
+      summary: "📱 Get WhatsApp QR Code"
+      description: |
+        **Get QR code for WhatsApp connection**
+        
+        **⚠️ CORE SERVICE ENDPOINT** - Use port 8080, not 8090
+        
+        - **URL**: `http://localhost:8080/whatsapp/{id}/qr`
+        - **Auth**: JWT Bearer token (same token from API Bridge authentication)
+        - **Requirements**: Session must be started first with `/core/whatsapp/{id}/start`
+        
+        Returns base64 encoded QR code image that users scan with WhatsApp mobile app.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          description: WhatsApp session ID
+          example: 14
+      security:
+        - oauth2: [admin, user]
+        - bearerAuth: []
+      responses:
+        '200':
+          description: QR code generated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  qrcode:
+                    type: string
+                    description: Base64 encoded QR code image
+                    example: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQ..."
+                  status:
+                    type: string
+                    example: "QRCODE"
+                  message:
+                    type: string
+                    example: "Scan this QR code with WhatsApp mobile app"
+        '401':
+          description: Unauthorized - invalid token
+        '404':
+          description: WhatsApp session not found
+        '409':
+          description: Session not in correct state for QR generation
+
+  /core/whatsapp/{id}/restart:
+    post:
+      tags: [WhatsApp Core]
+      summary: "🔄 Restart WhatsApp Session"
+      description: |
+        **Restart an existing WhatsApp session**
+        
+        **⚠️ CORE SERVICE ENDPOINT** - Use port 8080, not 8090
+        
+        - **URL**: `http://localhost:8080/whatsapp/{id}/restart`
+        - **Auth**: JWT Bearer token (same token from API Bridge authentication)
+        - **Use Case**: When session is stuck or needs to be refreshed
+        
+        This will disconnect the current session and start a new connection process.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          description: WhatsApp session ID
+          example: 14
+      security:
+        - oauth2: [admin, user]
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Session restart initiated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "WhatsApp session restart initiated"
+                  session:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        example: 14
+                      status:
+                        type: string
+                        example: "OPENING"
+        '401':
+          description: Unauthorized - invalid token
+        '404':
+          description: WhatsApp session not found
+
+  /core/whatsapp/{id}/disconnect:
+    post:
+      tags: [WhatsApp Core]
+      summary: "🔌 Disconnect WhatsApp Session"
+      description: |
+        **Disconnect WhatsApp session and stop all connections**
+        
+        **⚠️ CORE SERVICE ENDPOINT** - Use port 8080, not 8090
+        
+        - **URL**: `http://localhost:8080/whatsapp/{id}/disconnect`
+        - **Auth**: JWT Bearer token (same token from API Bridge authentication)
+        - **Effect**: Changes session status to DISCONNECTED
+        
+        Use this to cleanly stop a WhatsApp session.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          description: WhatsApp session ID
+          example: 14
+      security:
+        - oauth2: [admin, user]
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Session disconnected successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "WhatsApp session disconnected successfully"
+                  session:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        example: 14
+                      status:
+                        type: string
+                        example: "DISCONNECTED"
+        '401':
+          description: Unauthorized - invalid token
+        '404':
+          description: WhatsApp session not found
+
+  /whatsapp-sessions-note:
+    get:
+      tags: [WhatsApp]
+      summary: "⚠️ Session Control Moved to Core Service"
+      description: |
+        **Important Architecture Change:**
+        
+        Session control operations have been moved to the **Core service** (port 8080) for proper access to WhatsApp socket connections.
+        
+        **Core Service Endpoints:**
+        - `POST /whatsapp/{id}/start` - Start session and generate QR
+        - `POST /whatsapp/{id}/restart` - Restart existing session
+        - `POST /whatsapp/{id}/disconnect` - Disconnect session
+        - `GET /whatsapp/{id}/qr` - Get active QR code
+        
+        **Authentication:** Use JWT tokens with Core service endpoints.
+        
+        **API Bridge Endpoints (this service):**
+        - CRUD operations only (create, read, update, delete sessions)
+        
+        This separation ensures proper architectural boundaries and system stability.
+      responses:
+        '200':
+          description: "This is a documentation-only endpoint"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  note:
+                    type: string
+                    example: "Session control moved to Core service"
+                  coreServicePort:
+                    type: integer
+                    example: 8080
+                  apiBridgePort:
+                    type: integer
+                    example: 8090
+
+  # ============ COMPANIES ENDPOINTS ============
+  /companies:
+    get:
+      tags: [Companies]
+      summary: List companies
+      parameters:
+        - $ref: '#/components/parameters/pageParam'
+        - $ref: '#/components/parameters/limitParam'
+      responses:
+        '200':
+          description: List of companies
+
+  /companies/{id}:
+    parameters:
+      - $ref: '#/components/parameters/idParam'
+    
+    get:
+      tags: [Companies]
+      summary: Get company by ID
+      responses:
+        '200':
+          description: Company details
+
+    put:
+      tags: [Companies]
+      summary: Update company
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                phone:
+                  type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/SuccessResponse'
+
+  # ============ SETTINGS ENDPOINTS ============
+  /settings:
+    get:
+      tags: [Settings]
+      summary: List settings
+      parameters:
+        - $ref: '#/components/parameters/pageParam'
+        - $ref: '#/components/parameters/limitParam'
+        - $ref: '#/components/parameters/searchParam'
+      responses:
+        '200':
+          description: List of settings
+
+    post:
+      tags: [Settings]
+      summary: Create setting
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [key, value]
+              properties:
+                key:
+                  type: string
+                value:
+                  type: string
+      responses:
+        '201':
+          description: Setting created
+
+  /settings/{id}:
+    parameters:
+      - $ref: '#/components/parameters/idParam'
+    
+    get:
+      tags: [Settings]
+      summary: Get setting by ID
+      responses:
+        '200':
+          description: Setting details
+
+    put:
+      tags: [Settings]
+      summary: Update setting
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                value:
+                  type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/SuccessResponse'
+
+    delete:
+      tags: [Settings]
+      summary: Delete setting
+      responses:
+        '200':
+          $ref: '#/components/responses/SuccessResponse'
+
+  /settings/key/{key}:
+    parameters:
+      - name: key
+        in: path
+        required: true
+        schema:
+          type: string
+    
+    get:
+      tags: [Settings]
+      summary: Get setting by key
+      responses:
+        '200':
+          description: Setting value
+
+    put:
+      tags: [Settings]
+      summary: Update setting by key
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [value]
+              properties:
+                value:
+                  type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/SuccessResponse'
+
+  # ============ SCHEDULES ENDPOINTS ============
+  /schedules:
+    get:
+      tags: [Schedules]
+      summary: List scheduled messages
+      parameters:
+        - $ref: '#/components/parameters/pageParam'
+        - $ref: '#/components/parameters/limitParam'
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, sent, cancelled, failed]
+      responses:
+        '200':
+          description: List of schedules
+
+    post:
+      tags: [Schedules]
+      summary: Create scheduled message
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [body, sendAt, contactId]
+              properties:
+                body:
+                  type: string
+                sendAt:
+                  type: string
+                  format: date-time
+                contactId:
+                  type: integer
+                ticketId:
+                  type: integer
+            example:
+              body: "Reminder: Your appointment is tomorrow"
+              sendAt: "2025-08-29T14:00:00Z"
+              contactId: 1
+      responses:
+        '201':
+          description: Schedule created
+
+  /schedules/{id}:
+    parameters:
+      - $ref: '#/components/parameters/idParam'
+    
+    get:
+      tags: [Schedules]
+      summary: Get schedule by ID
+      responses:
+        '200':
+          description: Schedule details
+
+    put:
+      tags: [Schedules]
+      summary: Update scheduled message
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                body:
+                  type: string
+                sendAt:
+                  type: string
+                  format: date-time
+      responses:
+        '200':
+          $ref: '#/components/responses/SuccessResponse'
+
+    delete:
+      tags: [Schedules]
+      summary: Cancel scheduled message
+      responses:
+        '200':
+          $ref: '#/components/responses/SuccessResponse'
+
+  /schedules/{id}/sent:
+    patch:
+      tags: [Schedules]
+      summary: Mark schedule as sent
+      parameters:
+        - $ref: '#/components/parameters/idParam'
+      responses:
+        '200':
+          $ref: '#/components/responses/SuccessResponse'
+
+# ============ COMPONENTS ============
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token from /auth/core/login
+    
+    oauth2:
+      type: oauth2
+      description: JWT authentication flow  
+      flows:
+        password:
+          tokenUrl: /auth/core/oauth2/token
+          scopes:
+            admin: Admin access
+            user: User access
+    
+    apiKey:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: API Key for server-to-server
+    
+    devMode:
+      type: apiKey
+      in: query
+      name: companyId
+      description: Development mode - bypass auth
+
+  parameters:
+    pageParam:
+      in: query
+      name: page
+      schema:
+        type: integer
+        default: 1
+        minimum: 1
+      description: Page number
+    
+    limitParam:
+      in: query
+      name: limit
+      schema:
+        type: integer
+        default: 20
+        minimum: 1
+        maximum: 100
+      description: Items per page
+    
+    searchParam:
+      in: query
+      name: search
+      schema:
+        type: string
+      description: Search term
+    
+    idParam:
+      in: path
+      name: id
+      required: true
+      schema:
+        type: integer
+      description: Resource ID
+
+  schemas:
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+        totalPages:
+          type: integer
+        hasMore:
+          type: boolean
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: object
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        statusCode:
+          type: integer
+
+    Ticket:
+      type: object
+      properties:
+        id:
+          type: integer
+        protocol:
+          type: string
+        status:
+          type: string
+        unreadMessages:
+          type: integer
+        contactId:
+          type: integer
+        userId:
+          type: integer
+        queueId:
+          type: integer
+        companyId:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Message:
+      type: object
+      properties:
+        id:
+          type: string
+        body:
+          type: string
+        ack:
+          type: integer
+        read:
+          type: boolean
+        mediaType:
+          type: string
+        mediaUrl:
+          type: string
+        ticketId:
+          type: integer
+        fromMe:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    Contact:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        number:
+          type: string
+        email:
+          type: string
+        profilePicUrl:
+          type: string
+        isGroup:
+          type: boolean
+        companyId:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        profile:
+          type: string
+        online:
+          type: boolean
+        companyId:
+          type: integer
+
+    Tag:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        color:
+          type: string
+        kanban:
+          type: integer
+        ticketCount:
+          type: integer
+
+    Queue:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        color:
+          type: string
+        greeting:
+          type: string
+        orderQueue:
+          type: integer
+
+    WhatsApp:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        status:
+          type: string
+        battery:
+          type: string
+        plugged:
+          type: boolean
+        isDefault:
+          type: boolean
+
+    Company:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        status:
+          type: boolean
+
+    Setting:
+      type: object
+      properties:
+        id:
+          type: integer
+        key:
+          type: string
+        value:
+          type: string
+        companyId:
+          type: integer
+
+    Schedule:
+      type: object
+      properties:
+        id:
+          type: integer
+        body:
+          type: string
+        sendAt:
+          type: string
+          format: date-time
+        sentAt:
+          type: string
+          format: date-time
+        contactId:
+          type: integer
+        ticketId:
+          type: integer
+
+  responses:
+    UnauthorizedError:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: Unauthorized
+            message: Authentication required
+            statusCode: 401
+
+    NotFoundError:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: Not Found
+            message: Resource not found
+            statusCode: 404
+
+    TicketListResponse:
+      description: List of tickets
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+              data:
+                type: object
+                properties:
+                  tickets:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Ticket'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+
+    ContactCreatedResponse:
+      description: Contact created successfully
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+              data:
+                $ref: '#/components/schemas/Contact'
+              message:
+                type: string

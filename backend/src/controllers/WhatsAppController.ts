@@ -167,3 +167,192 @@ export const remove = async (
 
   return res.status(200).json({ message: "Whatsapp deleted." });
 };
+
+export const start = async (req: Request, res: Response): Promise<Response> => {
+  const { whatsappId } = req.params;
+  const { companyId } = req.user;
+
+  try {
+    const whatsapp = await ShowWhatsAppService(whatsappId, companyId);
+    
+    if (!whatsapp) {
+      return res.status(404).json({ 
+        error: "Not Found", 
+        message: "WhatsApp session not found" 
+      });
+    }
+
+    if (whatsapp.status === "CONNECTED") {
+      return res.status(400).json({ 
+        error: "Bad Request", 
+        message: "WhatsApp session is already connected" 
+      });
+    }
+
+    // Update status and start session
+    await whatsapp.update({ status: "OPENING" });
+    
+    StartWhatsAppSession(whatsapp, companyId);
+
+    const io = getIO();
+    io.to(`company-${companyId}-mainchannel`).emit(`company-${companyId}-whatsapp`, {
+      action: "update",
+      whatsapp
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "WhatsApp session initialization started",
+      data: {
+        id: whatsapp.id,
+        name: whatsapp.name,
+        status: "OPENING"
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ 
+      error: "Internal Server Error", 
+      message: error.message || "Failed to start WhatsApp session" 
+    });
+  }
+};
+
+export const restart = async (req: Request, res: Response): Promise<Response> => {
+  const { whatsappId } = req.params;
+  const { companyId } = req.user;
+
+  try {
+    const whatsapp = await ShowWhatsAppService(whatsappId, companyId);
+    
+    if (!whatsapp) {
+      return res.status(404).json({ 
+        error: "Not Found", 
+        message: "WhatsApp session not found" 
+      });
+    }
+
+    // Clear session and restart
+    await whatsapp.update({
+      status: "OPENING",
+      session: "",
+      retries: 0,
+      qrcode: ""
+    });
+
+    StartWhatsAppSession(whatsapp, companyId);
+
+    const io = getIO();
+    io.to(`company-${companyId}-mainchannel`).emit(`company-${companyId}-whatsapp`, {
+      action: "update",
+      whatsapp
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "WhatsApp session restart initiated",
+      data: {
+        id: whatsapp.id,
+        name: whatsapp.name,
+        status: "OPENING"
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ 
+      error: "Internal Server Error", 
+      message: error.message || "Failed to restart WhatsApp session" 
+    });
+  }
+};
+
+export const disconnect = async (req: Request, res: Response): Promise<Response> => {
+  const { whatsappId } = req.params;
+  const { companyId } = req.user;
+
+  try {
+    const whatsapp = await ShowWhatsAppService(whatsappId, companyId);
+    
+    if (!whatsapp) {
+      return res.status(404).json({ 
+        error: "Not Found", 
+        message: "WhatsApp session not found" 
+      });
+    }
+
+    if (whatsapp.status === "DISCONNECTED") {
+      return res.status(400).json({ 
+        error: "Bad Request", 
+        message: "WhatsApp session is already disconnected" 
+      });
+    }
+
+    // Disconnect and clear session data
+    await whatsapp.update({
+      status: "DISCONNECTED",
+      qrcode: "",
+      session: ""
+    });
+
+    // Remove wbot instance
+    removeWbot(+whatsappId);
+
+    const io = getIO();
+    io.to(`company-${companyId}-mainchannel`).emit(`company-${companyId}-whatsapp`, {
+      action: "update",
+      whatsapp
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "WhatsApp session disconnected successfully",
+      data: {
+        id: whatsapp.id,
+        name: whatsapp.name,
+        status: "DISCONNECTED"
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ 
+      error: "Internal Server Error", 
+      message: error.message || "Failed to disconnect WhatsApp session" 
+    });
+  }
+};
+
+export const getQR = async (req: Request, res: Response): Promise<Response> => {
+  const { whatsappId } = req.params;
+  const { companyId } = req.user;
+
+  try {
+    const whatsapp = await ShowWhatsAppService(whatsappId, companyId);
+    
+    if (!whatsapp) {
+      return res.status(404).json({ 
+        error: "Not Found", 
+        message: "WhatsApp session not found" 
+      });
+    }
+
+    if (whatsapp.status === "CONNECTED") {
+      return res.status(400).json({ 
+        error: "Bad Request", 
+        message: "WhatsApp session is already connected" 
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        id: whatsapp.id,
+        name: whatsapp.name,
+        status: whatsapp.status,
+        qrcode: whatsapp.qrcode || null,
+        retries: whatsapp.retries || 0
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ 
+      error: "Internal Server Error", 
+      message: error.message || "Failed to get QR code" 
+    });
+  }
+};

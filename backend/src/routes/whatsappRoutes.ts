@@ -19,4 +19,29 @@ whatsappRoutes.delete(
   WhatsAppController.remove
 );
 
+// WhatsApp session control endpoints
+whatsappRoutes.post(
+  "/whatsapp/:whatsappId/start", 
+  isAuth, 
+  WhatsAppController.start
+);
+
+whatsappRoutes.post(
+  "/whatsapp/:whatsappId/restart", 
+  isAuth, 
+  WhatsAppController.restart
+);
+
+whatsappRoutes.post(
+  "/whatsapp/:whatsappId/disconnect", 
+  isAuth, 
+  WhatsAppController.disconnect
+);
+
+whatsappRoutes.get(
+  "/whatsapp/:whatsappId/qr", 
+  isAuth, 
+  WhatsAppController.getQR
+);
+
 export default whatsappRoutes;

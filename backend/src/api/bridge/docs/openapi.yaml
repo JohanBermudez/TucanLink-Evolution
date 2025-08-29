@@ -1,0 +1,981 @@
+openapi: 3.0.3
+info:
+  title: TucanLink API Bridge
+  description: |
+    RESTful API Bridge para TucanLink - Sistema de gestión de WhatsApp multicanal.
+    
+    Esta API permite la integración de módulos externos con el core de TucanLink,
+    manteniendo el servicio de WhatsApp activo 24/7.
+    
+    ## Autenticación
+    
+    La API soporta dos métodos de autenticación:
+    - **JWT Bearer Token**: Para usuarios autenticados
+    - **API Key**: Para integraciones de sistemas
+    
+    ## Rate Limiting
+    
+    - JWT: 500 requests/minuto
+    - API Key: 1000 requests/minuto
+    - IP sin auth: 100 requests/minuto
+    
+  version: 1.0.0
+  contact:
+    name: TucanLink Support
+    email: support@tucanlink.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8090/api/bridge/v1
+    description: Development server
+  - url: https://api.tucanlink.com/api/bridge/v1
+    description: Production server
+
+tags:
+  - name: Authentication
+    description: Authentication endpoints
+  - name: Tickets
+    description: Ticket management
+  - name: Messages
+    description: Message operations
+  - name: Contacts
+    description: Contact management
+  - name: Users
+    description: User management
+  - name: Companies
+    description: Company settings
+  - name: WhatsApp
+    description: WhatsApp session management
+  - name: Webhooks
+    description: Webhook configuration
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    apiKey:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            details:
+              type: array
+              items:
+                type: object
+            timestamp:
+              type: string
+              format: date-time
+              
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+          minimum: 1
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 100
+        total:
+          type: integer
+        totalPages:
+          type: integer
+          
+    Ticket:
+      type: object
+      properties:
+        id:
+          type: integer
+        uuid:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [open, pending, closed]
+        unreadMessages:
+          type: integer
+        lastMessage:
+          type: string
+        contactId:
+          type: integer
+        contact:
+          $ref: '#/components/schemas/Contact'
+        userId:
+          type: integer
+        user:
+          $ref: '#/components/schemas/User'
+        queueId:
+          type: integer
+        queue:
+          $ref: '#/components/schemas/Queue'
+        whatsappId:
+          type: integer
+        isGroup:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+          
+    Message:
+      type: object
+      properties:
+        id:
+          type: string
+        ticketId:
+          type: integer
+        body:
+          type: string
+        contactId:
+          type: integer
+        fromMe:
+          type: boolean
+        read:
+          type: boolean
+        mediaUrl:
+          type: string
+        mediaType:
+          type: string
+        quotedMsg:
+          type: object
+        ack:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+          
+    Contact:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        number:
+          type: string
+        email:
+          type: string
+        profilePicUrl:
+          type: string
+        isGroup:
+          type: boolean
+        disableBot:
+          type: boolean
+        acceptAudioMessage:
+          type: boolean
+        active:
+          type: boolean
+        companyId:
+          type: integer
+        extraInfo:
+          type: object
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tag'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+          
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        profile:
+          type: string
+          enum: [admin, user, super]
+        companyId:
+          type: integer
+        whatsappId:
+          type: integer
+        online:
+          type: boolean
+        queues:
+          type: array
+          items:
+            $ref: '#/components/schemas/Queue'
+        createdAt:
+          type: string
+          format: date-time
+          
+    Queue:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        color:
+          type: string
+        greeting:
+          type: string
+        orderQueue:
+          type: integer
+        companyId:
+          type: integer
+        schedules:
+          type: array
+          items:
+            type: object
+            
+    Tag:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        color:
+          type: string
+        kanban:
+          type: integer
+        companyId:
+          type: integer
+          
+    WhatsAppSession:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        session:
+          type: string
+        qrcode:
+          type: string
+        status:
+          type: string
+          enum: [OPENING, CONNECTED, DISCONNECTED, qrcode]
+        number:
+          type: string
+        isDefault:
+          type: boolean
+        companyId:
+          type: integer
+        token:
+          type: string
+        provider:
+          type: string
+        retries:
+          type: integer
+          
+    ApiKey:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        key:
+          type: string
+        permissions:
+          type: array
+          items:
+            type: string
+        rateLimit:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+        lastUsedAt:
+          type: string
+          format: date-time
+          
+    Webhook:
+      type: object
+      properties:
+        id:
+          type: string
+        url:
+          type: string
+        events:
+          type: array
+          items:
+            type: string
+        active:
+          type: boolean
+        secret:
+          type: string
+        headers:
+          type: object
+        createdAt:
+          type: string
+          format: date-time
+
+  parameters:
+    limitParam:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    offsetParam:
+      name: offset
+      in: query
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+    pageParam:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+
+  responses:
+    UnauthorizedError:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    ForbiddenError:
+      description: Insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFoundError:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    ValidationError:
+      description: Validation failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    RateLimitError:
+      description: Rate limit exceeded
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+security:
+  - bearerAuth: []
+  - apiKey: []
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      tags:
+        - System
+      security: []
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  timestamp:
+                    type: string
+                  uptime:
+                    type: number
+                  version:
+                    type: string
+
+  /auth/login:
+    post:
+      summary: User login
+      tags:
+        - Authentication
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken:
+                    type: string
+                  refreshToken:
+                    type: string
+                  user:
+                    $ref: '#/components/schemas/User'
+
+  /auth/refresh:
+    post:
+      summary: Refresh access token
+      tags:
+        - Authentication
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - refreshToken
+              properties:
+                refreshToken:
+                  type: string
+      responses:
+        '200':
+          description: Token refreshed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken:
+                    type: string
+
+  /auth/apikeys:
+    get:
+      summary: List API keys
+      tags:
+        - Authentication
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of API keys
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ApiKey'
+                      
+    post:
+      summary: Generate new API key
+      tags:
+        - Authentication
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                permissions:
+                  type: array
+                  items:
+                    type: string
+                expiresInDays:
+                  type: integer
+      responses:
+        '201':
+          description: API key created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  apiKey:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/ApiKey'
+
+  /tickets:
+    get:
+      summary: List tickets
+      tags:
+        - Tickets
+      parameters:
+        - $ref: '#/components/parameters/limitParam'
+        - $ref: '#/components/parameters/offsetParam'
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [open, pending, closed]
+        - name: queueId
+          in: query
+          schema:
+            type: integer
+        - name: userId
+          in: query
+          schema:
+            type: integer
+        - name: contactId
+          in: query
+          schema:
+            type: integer
+        - name: searchParam
+          in: query
+          schema:
+            type: string
+        - name: withUnreadMessages
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: List of tickets
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Ticket'
+                  meta:
+                    $ref: '#/components/schemas/Pagination'
+
+    post:
+      summary: Create ticket
+      tags:
+        - Tickets
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - contactId
+              properties:
+                contactId:
+                  type: integer
+                status:
+                  type: string
+                  enum: [open, pending]
+                queueId:
+                  type: integer
+                userId:
+                  type: integer
+      responses:
+        '201':
+          description: Ticket created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Ticket'
+
+  /tickets/{id}:
+    get:
+      summary: Get ticket details
+      tags:
+        - Tickets
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Ticket details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Ticket'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+    put:
+      summary: Update ticket
+      tags:
+        - Tickets
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [open, pending, closed]
+                userId:
+                  type: integer
+                queueId:
+                  type: integer
+      responses:
+        '200':
+          description: Ticket updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Ticket'
+
+    delete:
+      summary: Delete ticket
+      tags:
+        - Tickets
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Ticket deleted
+
+  /messages:
+    get:
+      summary: List messages
+      tags:
+        - Messages
+      parameters:
+        - name: ticketId
+          in: query
+          required: true
+          schema:
+            type: integer
+        - $ref: '#/components/parameters/limitParam'
+        - $ref: '#/components/parameters/offsetParam'
+      responses:
+        '200':
+          description: List of messages
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Message'
+                  meta:
+                    $ref: '#/components/schemas/Pagination'
+
+    post:
+      summary: Send message
+      tags:
+        - Messages
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - ticketId
+                - body
+              properties:
+                ticketId:
+                  type: integer
+                body:
+                  type: string
+                quotedMsg:
+                  type: object
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                ticketId:
+                  type: integer
+                body:
+                  type: string
+                medias:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+      responses:
+        '201':
+          description: Message sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Message'
+
+  /contacts:
+    get:
+      summary: List contacts
+      tags:
+        - Contacts
+      parameters:
+        - $ref: '#/components/parameters/limitParam'
+        - $ref: '#/components/parameters/offsetParam'
+        - name: searchParam
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of contacts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Contact'
+                  meta:
+                    $ref: '#/components/schemas/Pagination'
+
+    post:
+      summary: Create contact
+      tags:
+        - Contacts
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - number
+              properties:
+                name:
+                  type: string
+                number:
+                  type: string
+                email:
+                  type: string
+                extraInfo:
+                  type: object
+      responses:
+        '201':
+          description: Contact created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Contact'
+
+  /whatsapp/sessions:
+    get:
+      summary: List WhatsApp sessions
+      tags:
+        - WhatsApp
+      responses:
+        '200':
+          description: List of sessions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/WhatsAppSession'
+
+  /whatsapp/sessions/{id}/status:
+    get:
+      summary: Get session status
+      tags:
+        - WhatsApp
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Session status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  qrcode:
+                    type: string
+                  connected:
+                    type: boolean
+
+  /whatsapp/sessions/{id}/qr:
+    get:
+      summary: Get QR code
+      tags:
+        - WhatsApp
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: QR code
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  qrcode:
+                    type: string
+                  status:
+                    type: string
+
+  /webhooks:
+    get:
+      summary: List webhooks
+      tags:
+        - Webhooks
+      responses:
+        '200':
+          description: List of webhooks
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Webhook'
+
+    post:
+      summary: Register webhook
+      tags:
+        - Webhooks
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - url
+                - events
+              properties:
+                url:
+                  type: string
+                  format: uri
+                events:
+                  type: array
+                  items:
+                    type: string
+                headers:
+                  type: object
+      responses:
+        '201':
+          description: Webhook registered
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Webhook'
+                  secret:
+                    type: string
+
+  /webhooks/{id}/test:
+    post:
+      summary: Test webhook
+      tags:
+        - Webhooks
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                event:
+                  type: string
+                  default: test
+                payload:
+                  type: object
+      responses:
+        '200':
+          description: Test event sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  statusCode:
+                    type: integer
+                  response:
+                    type: object

@@ -57,6 +57,7 @@ info:
     | ✅ Queues | Operativa | 6 | Gestión de colas |
     | ✅ WhatsApp | Operativa | 4 | CRUD sesiones |
     | ✅ WhatsApp Core | Operativa | 4 | Control de sesiones (puerto 8080) |
+    | ✅ WhatsApp Cloud API | Operativa | 11 | Integración Meta Cloud API |
     | ✅ Users | Operativa | 7 | Gestión de usuarios |
     | ✅ Tags | Operativa | 7 | Sistema de etiquetas |
     | ✅ Companies | Operativa | 3 | Multi-tenancy |
@@ -1633,6 +1634,752 @@ paths:
         '200':
           $ref: '#/components/responses/SuccessResponse'
 
+# ============ WHATSAPP CLOUD API ============
+  
+  /whatsapp-cloud/connections:
+    post:
+      tags: [WhatsApp Cloud API]
+      summary: Create WhatsApp Cloud connection
+      description: Create a new WhatsApp Cloud API connection for a company
+      security:
+        - bearerAuth: []
+        - oauth2: []
+        - apiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, accessToken, phoneNumberId]
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 255
+                  description: Connection name for identification
+                  example: "Production WhatsApp"
+                accessToken:
+                  type: string
+                  minLength: 10
+                  description: Meta Access Token
+                  example: "EAAYourAccessToken..."
+                phoneNumberId:
+                  type: string
+                  minLength: 1
+                  description: WhatsApp Phone Number ID from Meta
+                  example: "123456789012345"
+                businessAccountId:
+                  type: string
+                  description: Meta Business Account ID
+                  example: "987654321098765"
+                webhookVerifyToken:
+                  type: string
+                  minLength: 8
+                  description: Token for webhook verification (auto-generated if not provided)
+                  example: "mySecureWebhookToken123"
+                isDefault:
+                  type: boolean
+                  default: false
+                  description: Set as default connection for this company
+      responses:
+        '201':
+          description: WhatsApp Cloud connection created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/WhatsAppCloudConnection'
+                  message:
+                    type: string
+                    example: "WhatsApp Cloud connection created successfully"
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+    get:
+      tags: [WhatsApp Cloud API]
+      summary: List WhatsApp Cloud connections
+      description: Get all WhatsApp Cloud API connections for a company
+      security:
+        - bearerAuth: []
+        - oauth2: []
+        - apiKey: []
+      responses:
+        '200':
+          description: List of WhatsApp Cloud connections
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      connections:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/WhatsAppCloudConnection'
+                      total:
+                        type: integer
+                        example: 3
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /whatsapp-cloud/connections/{id}:
+    get:
+      tags: [WhatsApp Cloud API]
+      summary: Get WhatsApp Cloud connection
+      description: Get details of a specific WhatsApp Cloud connection
+      security:
+        - bearerAuth: []
+        - oauth2: []
+        - apiKey: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: Connection ID
+      responses:
+        '200':
+          description: WhatsApp Cloud connection details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/WhatsAppCloudConnection'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+    put:
+      tags: [WhatsApp Cloud API]
+      summary: Update WhatsApp Cloud connection
+      description: Update configuration of a WhatsApp Cloud connection
+      security:
+        - bearerAuth: []
+        - oauth2: []
+        - apiKey: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: Connection ID
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 255
+                accessToken:
+                  type: string
+                  minLength: 10
+                phoneNumberId:
+                  type: string
+                  minLength: 1
+                businessAccountId:
+                  type: string
+                webhookVerifyToken:
+                  type: string
+                  minLength: 8
+                isDefault:
+                  type: boolean
+      responses:
+        '200':
+          description: Connection updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/WhatsAppCloudConnection'
+                  message:
+                    type: string
+                    example: "WhatsApp Cloud connection updated successfully"
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+    delete:
+      tags: [WhatsApp Cloud API]
+      summary: Delete WhatsApp Cloud connection
+      description: Delete a WhatsApp Cloud connection
+      security:
+        - bearerAuth: []
+        - oauth2: []
+        - apiKey: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: Connection ID
+      responses:
+        '200':
+          description: Connection deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "WhatsApp Cloud connection deleted successfully"
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /whatsapp-cloud/connections/{id}/connect:
+    post:
+      tags: [WhatsApp Cloud API]
+      summary: Connect WhatsApp Cloud channel
+      description: Initialize connection to WhatsApp Cloud API
+      security:
+        - bearerAuth: []
+        - oauth2: []
+        - apiKey: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: Connection ID
+      responses:
+        '200':
+          description: Connection initiated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      connectionId:
+                        type: integer
+                        example: 1
+                      status:
+                        type: string
+                        enum: [CONNECTED, CONNECTING, ERROR]
+                        example: "CONNECTED"
+                  message:
+                    type: string
+                    example: "WhatsApp Cloud channel connection initiated"
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /whatsapp-cloud/connections/{id}/disconnect:
+    post:
+      tags: [WhatsApp Cloud API]
+      summary: Disconnect WhatsApp Cloud channel
+      description: Disconnect from WhatsApp Cloud API
+      security:
+        - bearerAuth: []
+        - oauth2: []
+        - apiKey: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: Connection ID
+      responses:
+        '200':
+          description: Disconnected successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      connectionId:
+                        type: integer
+                        example: 1
+                      status:
+                        type: string
+                        example: "DISCONNECTED"
+                  message:
+                    type: string
+                    example: "WhatsApp Cloud channel disconnected successfully"
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /whatsapp-cloud/connections/{id}/status:
+    get:
+      tags: [WhatsApp Cloud API]
+      summary: Get connection status
+      description: Get current status of WhatsApp Cloud connection
+      security:
+        - bearerAuth: []
+        - oauth2: []
+        - apiKey: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: Connection ID
+      responses:
+        '200':
+          description: Connection status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      connectionId:
+                        type: integer
+                        example: 1
+                      status:
+                        type: string
+                        enum: [CONNECTED, DISCONNECTED, CONNECTING, ERROR]
+                        example: "CONNECTED"
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /whatsapp-cloud/messages:
+    post:
+      tags: [WhatsApp Cloud API]
+      summary: Send WhatsApp message
+      description: Send a message through WhatsApp Cloud API
+      security:
+        - bearerAuth: []
+        - oauth2: []
+        - apiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [connectionId, to, type, content]
+              properties:
+                connectionId:
+                  type: integer
+                  minimum: 1
+                  description: WhatsApp Cloud connection ID
+                  example: 1
+                to:
+                  type: string
+                  pattern: '^\+?[1-9]\d{10,14}$'
+                  description: Phone number in E.164 format
+                  example: "+5511987654321"
+                type:
+                  type: string
+                  enum: [text, image, video, audio, document, location, contacts]
+                  description: Type of message to send
+                  example: "text"
+                content:
+                  type: string
+                  minLength: 1
+                  description: Message content (text for text messages, caption for media)
+                  example: "Hello! This is a test message from WhatsApp Cloud API"
+                mediaUrl:
+                  type: string
+                  format: uri
+                  description: URL of media file (for media messages)
+                  example: "https://example.com/image.jpg"
+                caption:
+                  type: string
+                  maxLength: 1024
+                  description: Caption for media messages
+                  example: "Check out this image!"
+                filename:
+                  type: string
+                  maxLength: 255
+                  description: Filename for document messages
+                  example: "document.pdf"
+                latitude:
+                  type: number
+                  minimum: -90
+                  maximum: 90
+                  description: Latitude for location messages
+                  example: -23.5505
+                longitude:
+                  type: number
+                  minimum: -180
+                  maximum: 180
+                  description: Longitude for location messages  
+                  example: -46.6333
+                locationName:
+                  type: string
+                  maxLength: 1000
+                  description: Name of the location
+                  example: "São Paulo, Brazil"
+                locationAddress:
+                  type: string
+                  maxLength: 1000
+                  description: Address of the location
+                  example: "São Paulo, SP, Brazil"
+      responses:
+        '200':
+          description: Message sent successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        example: "wamid.ABC123..."
+                      externalId:
+                        type: string
+                        example: "wamid.ABC123..."
+                      status:
+                        type: string
+                        enum: [sent, failed]
+                        example: "sent"
+                      metadata:
+                        type: object
+                        properties:
+                          waId:
+                            type: string
+                            example: "5511987654321"
+                          input:
+                            type: string
+                            example: "+55 11 98765-4321"
+                  message:
+                    type: string
+                    example: "Message sent successfully"
+        '400':
+          description: Message send failed or validation error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  error:
+                    type: string
+                    example: "Message Send Failed"
+                  message:
+                    type: string
+                    example: "Invalid phone number format"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /whatsapp-cloud/templates/send:
+    post:
+      tags: [WhatsApp Cloud API]
+      summary: Send WhatsApp template message
+      description: Send an approved WhatsApp template message
+      security:
+        - bearerAuth: []
+        - oauth2: []
+        - apiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [connectionId, to, templateName, languageCode]
+              properties:
+                connectionId:
+                  type: integer
+                  minimum: 1
+                  description: WhatsApp Cloud connection ID
+                  example: 1
+                to:
+                  type: string
+                  pattern: '^\+?[1-9]\d{10,14}$'
+                  description: Phone number in E.164 format
+                  example: "+5511987654321"
+                templateName:
+                  type: string
+                  minLength: 1
+                  maxLength: 512
+                  description: Name of the approved template
+                  example: "hello_world"
+                languageCode:
+                  type: string
+                  minLength: 2
+                  maxLength: 10
+                  description: Language code (ISO 639-1)
+                  example: "en"
+                components:
+                  type: array
+                  description: Template components with variables
+                  items:
+                    type: object
+                    properties:
+                      type:
+                        type: string
+                        enum: [header, body, button]
+                        description: Component type
+                      parameters:
+                        type: array
+                        description: Component parameters
+                        items:
+                          type: object
+                          properties:
+                            type:
+                              type: string
+                              enum: [text, currency, date_time, image, document, video]
+                            text:
+                              type: string
+                              description: Text parameter value
+      responses:
+        '200':
+          description: Template sent successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        example: "wamid.ABC123..."
+                      status:
+                        type: string
+                        example: "sent"
+                  message:
+                    type: string
+                    example: "Template sent successfully"
+        '400':
+          description: Template send failed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  error:
+                    type: string
+                    example: "Template Send Failed"
+                  message:
+                    type: string
+                    example: "Template not found or not approved"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /whatsapp-cloud/webhook:
+    get:
+      tags: [WhatsApp Cloud API]
+      summary: Verify WhatsApp webhook
+      description: Webhook verification endpoint for Meta
+      parameters:
+        - name: hub.mode
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [subscribe]
+          description: Verification mode
+        - name: hub.challenge
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Challenge string from Meta
+        - name: hub.verify_token
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Verify token configured in connection
+      responses:
+        '200':
+          description: Verification successful - returns challenge
+          content:
+            text/plain:
+              schema:
+                type: string
+                description: The challenge string
+        '403':
+          description: Invalid verification token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Forbidden"
+                  message:
+                    type: string
+                    example: "Invalid verification token"
+
+    post:
+      tags: [WhatsApp Cloud API]
+      summary: Process WhatsApp webhook
+      description: Webhook endpoint to receive messages and status updates from Meta
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                object:
+                  type: string
+                  example: "whatsapp_business_account"
+                entry:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        example: "123456789"
+                      changes:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            value:
+                              type: object
+                              properties:
+                                messaging_product:
+                                  type: string
+                                  example: "whatsapp"
+                                metadata:
+                                  type: object
+                                messages:
+                                  type: array
+                                statuses:
+                                  type: array
+                                contacts:
+                                  type: array
+      responses:
+        '200':
+          description: Webhook processed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+
+  /whatsapp-cloud/health:
+    get:
+      tags: [WhatsApp Cloud API]
+      summary: Health check
+      description: Check health status of WhatsApp Cloud connections
+      security:
+        - bearerAuth: []
+        - oauth2: []
+        - apiKey: []
+      responses:
+        '200':
+          description: Health status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      healthy:
+                        type: boolean
+                        example: true
+                      totalConnections:
+                        type: integer
+                        example: 2
+                      connections:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: integer
+                              example: 1
+                            name:
+                              type: string
+                              example: "Production WhatsApp"
+                            status:
+                              type: string
+                              example: "CONNECTED"
+                            type:
+                              type: string
+                              example: "WHATSAPP_CLOUD"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
 # ============ COMPONENTS ============
 components:
   securitySchemes:
@@ -1963,3 +2710,124 @@ components:
                 $ref: '#/components/schemas/Contact'
               message:
                 type: string
+
+    # WhatsApp Cloud API schemas
+    WhatsAppCloudConnection:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+          description: Connection ID
+        name:
+          type: string
+          example: "Production WhatsApp"
+          description: Connection name
+        type:
+          type: string
+          example: "WHATSAPP_CLOUD"
+          description: Channel type
+        status:
+          type: string
+          enum: [CONNECTED, DISCONNECTED, CONNECTING, ERROR]
+          example: "CONNECTED"
+          description: Connection status
+        companyId:
+          type: integer
+          example: 1
+          description: Company ID
+        configuration:
+          type: object
+          properties:
+            accessToken:
+              type: string
+              example: "...ABC12345"
+              description: Access token (masked)
+            phoneNumberId:
+              type: string
+              example: "123456789012345"
+              description: WhatsApp Phone Number ID
+            businessAccountId:
+              type: string
+              example: "987654321098765"
+              description: Business Account ID
+            webhookVerifyToken:
+              type: string
+              example: "mySecureWebhookToken123"
+              description: Webhook verification token
+            isDefault:
+              type: boolean
+              example: false
+              description: Is default connection
+            apiVersion:
+              type: string
+              example: "v23.0"
+              description: WhatsApp API version
+            maxRetries:
+              type: integer
+              example: 3
+              description: Maximum retry attempts
+            retryDelay:
+              type: integer
+              example: 1000
+              description: Delay between retries (ms)
+        capabilities:
+          type: object
+          properties:
+            text:
+              type: boolean
+              example: true
+            media:
+              type: boolean
+              example: true
+            buttons:
+              type: boolean
+              example: true
+            lists:
+              type: boolean
+              example: true
+            templates:
+              type: boolean
+              example: true
+            location:
+              type: boolean
+              example: true
+            contacts:
+              type: boolean
+              example: true
+            reactions:
+              type: boolean
+              example: true
+            typing:
+              type: boolean
+              example: false
+            read_receipts:
+              type: boolean
+              example: true
+        rateLimit:
+          type: object
+          properties:
+            messagesPerSecond:
+              type: integer
+              example: 80
+              description: Messages per second limit
+            messagesPerMinute:
+              type: integer
+              example: 4800
+              description: Messages per minute limit
+            burstSize:
+              type: integer
+              example: 100
+              description: Burst message size
+        metadata:
+          type: object
+          additionalProperties: true
+          description: Additional metadata
+      required:
+        - id
+        - name
+        - type
+        - status
+        - companyId
+        - configuration
+        - capabilities

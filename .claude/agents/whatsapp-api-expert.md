@@ -1,7 +1,7 @@
 ---
 name: whatsapp-api-expert
-description: Experto en WhatsApp Business Cloud API - Invoca este agente para implementar, configurar o resolver cualquier aspecto relacionado con la integración de WhatsApp Cloud API, incluyendo envío/recepción de mensajes, webhooks, plantillas, multimedia, autenticación y arquitectura del conector
-model: sonnet
+description: Experto en WhatsApp Business Cloud API - USE PROACTIVELY for any WhatsApp Cloud API integration tasks including message sending/receiving, webhooks, templates, multimedia handling, authentication, debugging, and connector architecture. MUST BE USED when implementing WhatsApp features, configuring connections, or solving API-related issues.
+model: opus
 ---
 
 # 🚀 WhatsApp Business Cloud API Expert Agent

@@ -26,6 +26,8 @@ import companyRoutes from './v1/routes/company.routes';
 import settingsRoutes from './v1/routes/settings.routes';
 import scheduleRoutes from './v1/routes/schedule.routes';
 import statusRoutes from './v1/routes/status.routes';
+import whatsappCloudRoutes from './v1/routes/whatsapp-cloud.routes';
+import { initializeChannels, shutdownChannels } from '../../channels/bootstrap';
 
 const app: Express = express();
 const httpServer: HttpServer = createServer(app);
@@ -168,6 +170,7 @@ app.use('/api/bridge/v1/messages', messagesRoutes);
 app.use('/api/bridge/v1/contacts', contactsRoutes);
 app.use('/api/bridge/v1/queues', queuesRoutes);
 app.use('/api/bridge/v1/whatsapp', whatsappRoutes);
+app.use('/api/bridge/v1/whatsapp-cloud', whatsappCloudRoutes);
 app.use('/api/bridge/v1/users', usersRoutes);
 app.use('/api/bridge/v1/tags', tagsRoutes);
 app.use('/api/bridge/v1/companies', companyRoutes);
@@ -222,6 +225,30 @@ process.on('uncaughtException', (error) => {
   process.exit(1);
 });
 
+// Graceful shutdown handlers
+const shutdown = async (signal: string) => {
+  logger.info(`Received ${signal}. Shutting down gracefully...`);
+  
+  try {
+    // Close HTTP server
+    httpServer.close(() => {
+      logger.info('HTTP server closed');
+    });
+
+    // Shutdown channel system
+    await shutdownChannels();
+    logger.info('Channel system shut down');
+
+    process.exit(0);
+  } catch (error) {
+    logger.error('Error during shutdown:', error);
+    process.exit(1);
+  }
+};
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
+
 const startServer = async (): Promise<void> => {
   try {
     validateConfig();
@@ -235,6 +262,15 @@ const startServer = async (): Promise<void> => {
       logger.info('Core database connection verified');
     } catch (error) {
       logger.error('Core database connection failed:', error);
+      throw error;
+    }
+
+    // Initialize channel system
+    try {
+      await initializeChannels();
+      logger.info('Channel system initialized');
+    } catch (error) {
+      logger.error('Failed to initialize channel system:', error);
       throw error;
     }
     
